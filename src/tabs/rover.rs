@@ -17,7 +17,7 @@ use {
     uname::{self, Info},
 };
 
-use crate::{Console, Rover, Message, Tab};
+use crate::{Console, Message, Rover, Tab};
 
 #[derive(Debug, Clone)]
 pub enum RoverMessage {}

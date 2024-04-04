@@ -16,16 +16,13 @@ mod tabs;
 
 use {
     crate::{
-        rover::{
-            console::Console,
-            // mu::Mu,
-        },
+        rover::{console::Console, mu::Mu},
         tabs::{
             composer::{ComposerMessage, ComposerTab},
             debugger::{DebuggerMessage, DebuggerTab},
-            rover::{RoverMessage, RoverTab},
             inspector::{InspectorMessage, InspectorTab},
             listener::{ListenerMessage, ListenerTab},
+            rover::{RoverMessage, RoverTab},
         },
     },
     hostname::{self},
@@ -219,5 +216,6 @@ trait Tab {
 }
 
 fn main() -> iced::Result {
+    Mu::wc();
     RoverState::run(Settings::default())
 }

@@ -20,7 +20,6 @@ iced_aw = { version = "0.8.0", features = ["tabs", "icons"] }
 iced_native = { version = "0.10.3" }
 iced_wgpu = { version = "0.12.1" }
 lazy_static = { version = "1.4.0" }
-mu = { git = "https://github.com/Software-Knife-and-Tool/mu.git", branch = "main" }
 num-traits = { version = "0.2.15", optional = true }
 once_cell = { version = "1.17.1" }
 rfd = "0.13"
