@@ -1,47 +1,52 @@
 //  SPDX-FileCopyrightText: Copyright 2022 James M. Putnam (putnamjm.design@gmail.com)
 //  SPDX-License-Identifier: MIT
 
-extern crate mu;
-
-#[allow(unused_imports)]
-use {
-    mu::{Condition, Mu as Mu_, Result as Result_, Tag},
-    std::{fs, io},
+use std::{
+    io::prelude::*,
+    process::{Command, Stdio},
 };
 
 #[allow(dead_code)]
-pub struct Mu {
-    config: Option<String>,
-    mu: Mu_,
-}
+pub struct Mu {}
 
-#[allow(dead_code)]
+static PANGRAM: &str = "the quick brown fox jumped over the lazy dog\n";
+
 impl Mu {
-    pub fn new(config_: Option<String>) -> Self {
-        let config = match config_ {
-            None => Mu_::config(&String::new()).unwrap(),
-            Some(ref config) => match Mu_::config(config) {
-                None => {
-                    eprintln!("mu: configuration error");
-                    std::process::exit(-1)
-                }
-                Some(config) => config,
-            },
+    pub fn wc() {
+        // Spawn the `wc` command
+        let mut cmd = if cfg!(target_family = "windows") {
+            let mut cmd = Command::new("powershell");
+            cmd.arg("-Command")
+                .arg("$input | Measure-Object -Line -Word -Character");
+            cmd
+        } else {
+            Command::new("wc")
+        };
+        let process = match cmd.stdin(Stdio::piped()).stdout(Stdio::piped()).spawn() {
+            Err(why) => panic!("couldn't spawn wc: {}", why),
+            Ok(process) => process,
         };
 
-        Mu {
-            config: config_,
-            mu: Mu_::new(&config),
+        // Write a string to the `stdin` of `wc`.
+        //
+        // `stdin` has type `Option<ChildStdin>`, but since we know this instance
+        // must have one, we can directly `unwrap` it.
+        match process.stdin.unwrap().write_all(PANGRAM.as_bytes()) {
+            Err(why) => panic!("couldn't write to wc stdin: {}", why),
+            Ok(_) => println!("sent pangram to wc"),
         }
-    }
 
-    pub fn eval(&self, expr: &str) -> io::Result<String> {
-        match self.mu.eval_str(expr) {
-            Err(err) => std::io::Result::Err(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                self.mu.exception_string(err),
-            )),
-            Ok(value) => Ok(self.mu.write_to_string(value, false).to_string()),
+        // Because `stdin` does not live after the above calls, it is `drop`ed,
+        // and the pipe is closed.
+        //
+        // This is very important, otherwise `wc` wouldn't start processing the
+        // input we just sent.
+
+        // The `stdout` field also has type `Option<ChildStdout>` so must be unwrapped.
+        let mut s = String::new();
+        match process.stdout.unwrap().read_to_string(&mut s) {
+            Err(why) => panic!("couldn't read wc stdout: {}", why),
+            Ok(_) => print!("wc responded with:\n{}", s),
         }
     }
 }

@@ -3,6 +3,6 @@
 
 pub mod composer;
 pub mod debugger;
-pub mod rover;
 pub mod inspector;
 pub mod listener;
+pub mod rover;
