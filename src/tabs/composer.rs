@@ -4,31 +4,31 @@
 use {
     crate::{Message, Tab},
     iced::{
-        widget::{Column, Container, Image, Slider, Text},
-        Alignment, Element, Length,
+        widget::{Container, Text},
+        Element, Length,
     },
-    iced_aw::tab_bar::TabLabel,
+    iced_aw::{split, tab_bar::TabLabel, Split},
 };
 
 #[derive(Debug, Clone)]
 pub enum ComposerMessage {
-    ImageWidthChanged(f32),
+    OnHorResize(u16),
 }
 
 pub struct ComposerTab {
-    composer_width: f32,
+    hor_divider_position: Option<u16>,
 }
 
 impl ComposerTab {
     pub fn new() -> Self {
         ComposerTab {
-            composer_width: 100.0,
+            hor_divider_position: None,
         }
     }
 
     pub fn update(&mut self, message: ComposerMessage) {
         match message {
-            ComposerMessage::ImageWidthChanged(value) => self.composer_width = value,
+            ComposerMessage::OnHorResize(position) => self.hor_divider_position = Some(position),
         }
     }
 }
@@ -45,38 +45,27 @@ impl Tab for ComposerTab {
     }
 
     fn content(&self) -> Element<'_, Self::Message> {
-        let content: Element<'_, ComposerMessage> = Container::new(
-            Column::new()
-                .align_items(Alignment::Center)
-                .max_width(600)
-                .padding(20)
-                .spacing(16)
-                .push(composer(self.composer_width))
-                .push(Text::new(if self.composer_width == 500.0 {
-                    "Earth is saved!"
-                } else {
-                    "-= enlarge =-"
-                }))
-                .push(Slider::new(
-                    100.0..=500.0,
-                    self.composer_width,
-                    ComposerMessage::ImageWidthChanged,
-                )),
-        )
-        .align_x(iced::alignment::Horizontal::Center)
+        let top = Container::new(Text::new("Top"))
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .center_x()
+            .center_y();
+
+        let bottom = Container::new(Text::new("Bottom"))
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .center_x()
+            .center_y();
+
+        let content: Element<'_, ComposerMessage> = Container::new(Split::new(
+            top,
+            bottom,
+            self.hor_divider_position,
+            split::Axis::Horizontal,
+            ComposerMessage::OnHorResize,
+        ))
         .into();
 
         content.map(Message::Composer)
     }
-}
-
-fn composer<'a>(width: f32) -> Container<'a, ComposerMessage> {
-    Container::new(if cfg!(target_carch = "wasm32") {
-        Image::new("images/composer.png")
-    } else {
-        Image::new(format!("{}/images/flash.png", env!("CARGO_MANIFEST_DIR")))
-            .width(Length::Fixed(width))
-    })
-    .width(Length::Fill)
-    .center_x()
 }

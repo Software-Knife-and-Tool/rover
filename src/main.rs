@@ -35,18 +35,20 @@ use {
 };
 
 lazy_static! {
+    #[allow(dead_code)]
     static ref ROVER: Rover = Rover {
         console: Console::new(),
-        // mu: Mu::new(),
+        mu: Mu::new(),
     };
 }
 
 const TAB_PADDING: u16 = 16;
 
-#[derive(Clone, Debug)]
+// #[derive(Clone, Debug)]
+#[allow(dead_code)]
 struct Rover {
     console: Console,
-    // mu: Mu,
+    mu: Mu,
 }
 
 #[allow(clippy::large_enum_variant)]
@@ -109,6 +111,14 @@ impl Application for RoverState {
                 std::process::exit(0)
             }
             Ok(version) => ROVER.console.log(format!("mu version: {}", version)),
+        }
+
+        match ROVER.mu.eval("(lib:hp-info)".to_string()) {
+            Err(err_msg) => {
+                eprintln!("{}", err_msg);
+                std::process::exit(0)
+            }
+            Ok(one) => ROVER.console.log(format!("mu eval: {}", one)),
         }
 
         (
