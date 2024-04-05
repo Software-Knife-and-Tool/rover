@@ -43,8 +43,6 @@ lazy_static! {
 
 const TAB_PADDING: u16 = 16;
 
-// rover.log("main: UI initialized");
-
 #[derive(Clone, Debug)]
 struct Rover {
     console: Console,
@@ -105,6 +103,14 @@ impl Application for RoverState {
     type Flags = ();
 
     fn new(_flags: ()) -> (RoverState, Command<Message>) {
+        match Mu::version() {
+            Err(err_msg) => {
+                eprintln!("{}", err_msg);
+                std::process::exit(0)
+            }
+            Ok(version) => ROVER.console.log(format!("mu version: {}", version)),
+        }
+
         (
             RoverState::Loading,
             Command::batch(vec![Command::perform(load(), Message::Loaded)]),
@@ -216,6 +222,5 @@ trait Tab {
 }
 
 fn main() -> iced::Result {
-    Mu::wc();
     RoverState::run(Settings::default())
 }

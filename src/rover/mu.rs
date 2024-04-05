@@ -3,50 +3,60 @@
 
 use std::{
     io::prelude::*,
-    process::{Command, Stdio},
+    process::{Child, Command, Stdio},
 };
 
 #[allow(dead_code)]
-pub struct Mu {}
-
-static PANGRAM: &str = "the quick brown fox jumped over the lazy dog\n";
+pub struct Mu {
+    process: Child,
+}
 
 impl Mu {
-    pub fn wc() {
-        // Spawn the `wc` command
-        let mut cmd = if cfg!(target_family = "windows") {
-            let mut cmd = Command::new("powershell");
-            cmd.arg("-Command")
-                .arg("$input | Measure-Object -Line -Word -Character");
-            cmd
-        } else {
-            Command::new("wc")
-        };
-        let process = match cmd.stdin(Stdio::piped()).stdout(Stdio::piped()).spawn() {
-            Err(why) => panic!("couldn't spawn wc: {}", why),
+    #[allow(dead_code)]
+    pub fn new() -> Self {
+        let mut process = match Command::new("mu-sys")
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .spawn()
+        {
+            Err(_) => panic!(),
             Ok(process) => process,
         };
 
-        // Write a string to the `stdin` of `wc`.
-        //
-        // `stdin` has type `Option<ChildStdin>`, but since we know this instance
-        // must have one, we can directly `unwrap` it.
-        match process.stdin.unwrap().write_all(PANGRAM.as_bytes()) {
-            Err(why) => panic!("couldn't write to wc stdin: {}", why),
-            Ok(_) => println!("sent pangram to wc"),
+        if let Err(why) = process
+            .stdin
+            .as_ref()
+            .unwrap()
+            .write_all("lib:version".as_bytes())
+        {
+            panic!("mu-sys: couldn't write to stdin: {}", why)
         }
 
-        // Because `stdin` does not live after the above calls, it is `drop`ed,
-        // and the pipe is closed.
-        //
-        // This is very important, otherwise `wc` wouldn't start processing the
-        // input we just sent.
+        let mut s = String::new();
+        match process.stdout.as_mut().unwrap().read_to_string(&mut s) {
+            Err(why) => panic!("mu:sys: couldn't read stdout: {}", why),
+            Ok(_) => Mu { process },
+        }
+    }
 
-        // The `stdout` field also has type `Option<ChildStdout>` so must be unwrapped.
+    pub fn version() -> std::result::Result<String, String> {
+        let process = match Command::new("mu-sys")
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .spawn()
+        {
+            Err(why) => return Err(format!("mu-sys: couldn't spawn: {}", why)),
+            Ok(process) => process,
+        };
+
+        if let Err(why) = process.stdin.unwrap().write_all("lib:version".as_bytes()) {
+            return Err(format!("mu-sys: couldn't write to stdin: {}", why));
+        }
+
         let mut s = String::new();
         match process.stdout.unwrap().read_to_string(&mut s) {
-            Err(why) => panic!("couldn't read wc stdout: {}", why),
-            Ok(_) => print!("wc responded with:\n{}", s),
+            Err(why) => Err(format!("mu:sys: couldn't read stdout: {}", why)),
+            Ok(_) => Ok(s),
         }
     }
 }
